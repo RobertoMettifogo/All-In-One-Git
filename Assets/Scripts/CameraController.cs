@@ -7,7 +7,7 @@ public class CameraController : MonoBehaviour
     public Transform player;
     public float smoothness = 0.1f;
 
-    void Update()
+    void LateUpdate()
     {
         if (player != null)
         {

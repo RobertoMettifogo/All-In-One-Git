@@ -6,8 +6,11 @@ public class PlayerController : MonoBehaviour
 {
     public float MoveSpeed = 5f;
     public float jumpForce = 1f;
+    public float SprintSpeed = 10f;
     public bool CanMove;
     private bool CanJump;
+    private bool CanDash;
+    private bool CanSprint;
     private Rigidbody2D rb;
     public Vector3 initialposition;
     private Animator animator;
@@ -30,21 +33,24 @@ public class PlayerController : MonoBehaviour
         initialposition = transform.position;
         CanMove = true;
         isDashing = false;
+        CanDash = false;
+        CanSprint = true;
 
     }
     public void Update()
     {
         PlayerMovement();
-        PlayerCrouch();
         HandleJump();
 
-        if (Input.GetKeyDown(KeyCode.LeftShift) && !isDashing && CanMove == false)
+        if (Input.GetKeyDown(KeyCode.LeftShift) && !isDashing && CanMove == false && CanDash)
         {
             Dash();
 
             float horizontalInput = Input.GetAxis("Horizontal");
             float move = isDashing ? dashSpeed : MoveSpeed;
             rb.velocity = new Vector2(horizontalInput * move, rb.velocity.y);
+
+            Debug.Log("DASH!");
         }
 
         if (Input.GetKey(KeyCode.R))
@@ -58,6 +64,14 @@ public class PlayerController : MonoBehaviour
     {
         if (CanMove)
         {
+            if (Input.GetKeyDown(KeyCode.LeftShift) && CanSprint)
+            {
+                MoveSpeed = 10f;
+            }
+            if (Input.GetKeyUp(KeyCode.LeftShift) && CanSprint)
+            {
+                MoveSpeed = 5f;
+            }
             if (Input.GetKey(KeyCode.A) && !isDashing)
             {
                 transform.Translate(Vector2.right * MoveSpeed * Time.deltaTime);
@@ -77,19 +91,6 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    public void PlayerCrouch()
-    {
-        if (Input.GetKeyDown(KeyCode.S))
-        {
-            Crouch();
-            CanMove = false;
-        }
-        if (Input.GetKeyUp(KeyCode.S))
-        {
-            StopCrouch();
-            CanMove = true;
-        }
-    }
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
@@ -107,26 +108,24 @@ public class PlayerController : MonoBehaviour
                     Debug.Log("HIT");
                     TakeDamage();
                 }
+
+                if (collision.gameObject.CompareTag("Ground"))
+                {
+                    animator.SetBool("PlayerDash", false);
+                    CanDash = false;
+                    CanSprint = true;
+                    rb.velocity = Vector2.zero;
+                }
             }
         }
     }
-
-    public void Crouch()
-    {
-        animator.SetBool("PlayerCrouch", true);
-    }
-
-    public void StopCrouch()
-    {
-        animator.SetBool("PlayerCrouch", false);
-    }
-
     void HandleJump()
     {
         if (Input.GetKeyDown(KeyCode.Space) && CanJump)
         {
+            animator.SetBool("PlayerWalk", false);
             StartChargingJump();
-            animator.SetBool("PlayerJump", true);
+            animator.SetBool("PlayerCrouch", true);
         }
 
         if (Input.GetKey(KeyCode.Space) && CanJump)
@@ -137,6 +136,8 @@ public class PlayerController : MonoBehaviour
         if (Input.GetKeyUp(KeyCode.Space) && CanJump)
         {
             ReleaseJump();
+            animator.SetBool("PlayerCrouch", false);
+            animator.SetBool("PlayerJump", true);
         }
     }
 
@@ -167,6 +168,7 @@ public class PlayerController : MonoBehaviour
 
         CanMove = false;
         CanJump = false;
+        CanDash = true;
     }
 
     void Dash()
@@ -196,6 +198,7 @@ public class PlayerController : MonoBehaviour
     {
         animator.SetBool("PlayerDead", false);
         transform.position = initialposition;
+        CanMove = true;
     }
 
     void TakeDamage()
@@ -204,7 +207,12 @@ public class PlayerController : MonoBehaviour
 
         if (life <= 0)
         {
+            CanMove = false;
             Debug.Log("YOU ARE SO BAD!");
+            animator.SetBool("PlayerWalk", false);
+            animator.SetBool("PlayerDash", false);
+            CanMove = false;
+            rb.velocity = Vector2.zero;
             animator.SetBool("PlayerDead", true);
             StartCoroutine(Respawning());
         }
