@@ -24,7 +24,10 @@ public class PlayerController : MonoBehaviour
     public float dashDuration = 0.5f;
     private float animationDuration = 1f;
 
-    public float life = 1;
+    public GameController gameController;
+    public UIController uiController;
+
+    private float life = 1;
 
     public void Start()
     {
@@ -97,28 +100,26 @@ public class PlayerController : MonoBehaviour
         if (collision.contacts.Length > 0)
         {
             ContactPoint2D contact = collision.contacts[0];
-            if (Vector2.Dot(contact.normal, Vector2.up) > 0.5)
+            CanJump = true;
+            CanMove = true;
+            animator.SetBool("PlayerJump", false);
+
+            if (collision.gameObject.CompareTag("Enemy"))
             {
-                CanJump = true;
-                CanMove = true;
-                animator.SetBool("PlayerJump", false);
+                Debug.Log("HIT");
+                TakeDamage();
+            }
 
-                if (collision.gameObject.CompareTag("Enemy"))
-                {
-                    Debug.Log("HIT");
-                    TakeDamage();
-                }
-
-                if (collision.gameObject.CompareTag("Ground"))
-                {
-                    animator.SetBool("PlayerDash", false);
-                    CanDash = false;
-                    CanSprint = true;
-                    rb.velocity = Vector2.zero;
-                }
+            if (collision.gameObject.CompareTag("Ground"))
+            {
+                animator.SetBool("PlayerDash", false);
+                CanDash = false;
+                CanSprint = true;
+                rb.velocity = Vector2.zero;
             }
         }
     }
+
     void HandleJump()
     {
         if (Input.GetKeyDown(KeyCode.Space) && CanJump)
